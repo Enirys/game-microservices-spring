@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6c00c617-ce6d-4ea0-a1a7-8568cac4d28e" >
+		<http:listener-connection host="0.0.0.0" port="8081">
+		</http:listener-connection>
+	</http:listener-config>
+	<http:request-config name="Shop_items_configuration" doc:name="HTTP Request configuration" doc:id="ab262feb-2b1b-41a1-9ce2-a7044b744cbc" >
+		<http:request-connection host="localhost" port="5001">
+		</http:request-connection>
+	</http:request-config>
+	<http:request-config name="inventory_item_Request_configuration" doc:name="HTTP Request configuration" doc:id="60ceec0d-e9a8-46ec-81fe-dba95e2148bb" >
+		<http:request-connection host="localhost" port="5003" />
+	</http:request-config>
+	<http:request-config name="currency_Request_configuration" doc:name="HTTP Request configuration" doc:id="fe7146ce-fe22-4ae5-a5d2-7397d05e41c9" >
+		<http:request-connection host="localhost" port="5008" />
+	</http:request-config>
+	<http:request-config name="agents_Request_configuration" doc:name="HTTP Request configuration" doc:id="fd03b980-4639-4d58-bd7f-62fcdd576060" >
+		<http:request-connection host="localhost" port="5006" />
+	</http:request-config>
+	<http:request-config name="matchamking_Request_configuration" doc:name="HTTP Request configuration" doc:id="3d89aab7-eb5c-4e1d-bf47-6b236706763d" >
+		<http:request-connection host="localhost" port="5002"/>
+	</http:request-config>
+	<http:request-config name="team_Request_configuration" doc:name="HTTP Request configuration" doc:id="f43ea6f3-6236-4bf3-b375-38e5e9efb10b" >
+		<http:request-connection host="localhost" port="5005" />
+	</http:request-config>
+	<http:request-config name="players_Request_configuration" doc:name="HTTP Request configuration" doc:id="aa46add0-90a4-4490-b4f8-77f04f0807c4" >
+		<http:request-connection host="localhost" port="5009" />
+	</http:request-config>
+	<http:request-config name="abilities_Request_configuration" doc:name="HTTP Request configuration" doc:id="4ed214e6-7c8a-46bb-b063-7bfa73a41a98" >
+		<http:request-connection host="localhost" port="5004" />
+	</http:request-config>
+	<flow name="ShowShopItemsFlow" doc:id="9d6a5d14-7c6c-49a7-b3a4-4527986454f4" >
+		<http:listener doc:name="Listener" doc:id="589babeb-d343-4cc2-98e1-71c0d343f24a" config-ref="HTTP_Listener_config" path="/shop"/>
+		<http:request method="GET" doc:name="Get Shop Items Request" doc:id="98991773-1376-4712-a5ce-43c1b6fc74bf" config-ref="Shop_items_configuration" path="/items"/>
+	</flow>
+	<flow name="BuyItemFlow" doc:id="66b83a6e-365d-4e84-8ea5-bd6416305c68" >
+		<http:listener doc:name="Listener" doc:id="b50bb861-dd10-43dc-9257-ff0443137e87" config-ref="HTTP_Listener_config" path="/buyItem/{itemid}"/>
+		<set-variable value="#[attributes.uriParams.itemid]" doc:name="Set Variable" doc:id="234198ef-5346-4e7f-b84f-98d00d4d9bcf" variableName="itemid"/>
+		<http:request method="GET" doc:name="Get Item Request" doc:id="effb0978-58f8-4ed8-a49d-0f520c49ac64" config-ref="Shop_items_configuration" path='#["/items/" ++ vars.itemid]'/>
+		<set-payload value='#[{&#10;	"userId": 1,&#10;    "catalogItemId": payload.id,&#10;    "price": payload.price&#10;  }]' doc:name="Set Payload" doc:id="8c0b41e5-cc05-4b30-b1cb-2802ab67c430" />
+		<set-variable value="#[payload.price]" doc:name="Set Variable" doc:id="ac09ac56-e8f3-4ecf-88e5-71ebbadbac7b" variableName="price"/>
+		<set-variable value="#[payload.userId]" doc:name="Set Variable" doc:id="e27003c4-4c33-4a04-b682-866536a5a9cd" variableName="userId"/>
+		<set-variable value="#[payload.catalogItemId]" doc:name="Set Variable" doc:id="eacc5677-fee4-46f4-9282-455fa4da9f0a" variableName="catalogItemId"/>
+		<http:request method="POST" doc:name="Add Item to Inventory Request" doc:id="8dab76c1-2f50-4ea5-9895-42393839e66a" config-ref="inventory_item_Request_configuration" path="/inventory/">
+			<http:body ><![CDATA[#[{
+  "userId": vars.userId,
+  "catalogItemId": vars.catalogItemId
+}]]]></http:body>
+		</http:request>
+		<set-payload value='#[{&#10;	"userId": vars.userId,&#10;    "price": vars.price&#10;  }]' doc:name="Set Payload" doc:id="5d736dbd-b08c-4e54-a303-c5c240cb11ce" />
+		<http:request method="PUT" doc:name="Update User's Currency Request" doc:id="3e65bc4c-11cc-497a-8b2a-778dc1da1983" config-ref="currency_Request_configuration" path='#["/currency/decrease/" ++ vars.userId ++ "/" ++ vars.price]'>
+		</http:request>
+	</flow>
+	<flow name="SellItemFlow" doc:id="d8b0f13b-afe9-4494-adcb-ae13aeb21a39" >
+		<http:listener doc:name="Listener" doc:id="3fc78097-d1d1-478b-b991-153260e9fa0c" config-ref="HTTP_Listener_config" path="/sellItem/{itemid}"/>
+		<set-variable value="#[attributes.uriParams.itemid]" doc:name="Set Variable" doc:id="123abb21-e3b0-4884-b964-e71e1180625b" variableName="itemid"/>
+		<http:request method="GET" doc:name="Get Item Request" doc:id="2c78e2e5-3bc4-4ae8-8e92-d5b2f56584bc" path='#["/items/" ++ vars.itemid]' config-ref="Shop_items_configuration"/>
+		<set-payload value='#[{&#10;	"userId": 1,&#10;    "catalogItemId": payload.id,&#10;    "price": payload.price&#10;  }]' doc:name="Set Payload" doc:id="7417590f-3d41-4c6b-872a-a3dd7553e8b8" />
+		<set-variable value="#[payload.price]" doc:name="Set Variable" doc:id="03747bb7-9612-4e37-b426-970f393413ae" variableName="price"/>
+		<set-variable value="#[payload.userId]" doc:name="Set Variable" doc:id="ea997201-a3bb-4b2d-a3a7-8e6fc7de2a82" variableName="userId"/>
+		<set-variable value="#[payload.catalogItemId]" doc:name="Set Variable" doc:id="037eeea7-868c-414e-bbf3-283fcaa9806a" variableName="catalogItemId"/>
+		<http:request method="DELETE" doc:name="Delete Item From Inventory Request" doc:id="f4b3a9f6-d060-49b3-a7ad-7cfe2f6ddad8" config-ref="inventory_item_Request_configuration" path='#["/inventory/" ++ vars.catalogItemId]'/>
+		<set-payload value='#[{&#10;	"userId": vars.userId,&#10;    "price": vars.price&#10;  }]' doc:name="Set Payload" doc:id="7d225736-30a0-4862-a853-0d55101b13de" />
+		<http:request method="PUT" doc:name="Update User's Currency Request" doc:id="17447e09-722c-4e44-a4d0-5f552cdae3b9" config-ref="currency_Request_configuration" path='#["/currency/increase/" ++ vars.userId ++ "/" ++ vars.price]'/>
+	</flow>
+	<flow name="MatchMakingFlow" doc:id="6e553342-159c-4c05-87a1-3330c382e607">
+		<http:listener doc:name="Listener" doc:id="f6c4cf63-c8a4-4ac0-827f-a51c4531370a" config-ref="HTTP_Listener_config" path="/startmatch" />
+		<http:request method="POST" doc:name="CreateMatchRequest" doc:id="d4519a72-016e-4c49-bd5a-306fbaa4971f" config-ref="matchamking_Request_configuration" path="/matchs">
+			<http:body ><![CDATA[{
+    "date": null,
+    "teams": null
+}]]></http:body>
+		</http:request>
+		<set-variable value="#[payload.id]" doc:name="Get Created Match Id" doc:id="6a623a1f-356f-4341-98ae-934b9ccf0c12" variableName="matchId"/>
+		<http:request method="POST" doc:name="CreateTeamRequest" doc:id="346ea7ce-236a-4db8-8046-951cdee6100b" config-ref="team_Request_configuration" path="/teams">
+			<http:body ><![CDATA[#[{
+    "matchId": vars.matchId
+}]]]></http:body>
+		</http:request>
+		<set-variable value="#[payload.id]" doc:name="Get Created Team Id" doc:id="84afddd2-75c6-4379-bd08-51d4782af0d6" variableName="teamId"/>
+		<set-variable value="#[4 as Number]" doc:name="Set Variable" doc:id="6c89eeda-9ecc-4306-89d2-9f4c25724b69" variableName="numberOfPlayers"/>
+		<http:request method="POST" doc:name="Request" doc:id="a7648c3b-faa9-43a1-a128-7dbb0704df8e" config-ref="players_Request_configuration" path='#["/players/random/" ++ vars.teamId ++ "/" ++ vars.numberOfPlayers]'/>
+		<http:request method="POST" doc:name="Create Player" doc:id="3c3b2aca-81ca-4294-8bb6-7e44b90880d9" config-ref="players_Request_configuration" path="/players">
+			<http:body ><![CDATA[#[{
+    "userId": 1,
+    "teamId": vars.teamId
+}]]]></http:body>
+		</http:request>
+		<http:request method="POST" doc:name="Create Enemy Team" doc:id="df89dd9b-3c2b-4184-a7a7-f024462423a1" config-ref="team_Request_configuration" path="/teams">
+			<http:body ><![CDATA[#[{
+    "matchId": vars.matchId
+}]]]></http:body>
+		</http:request>
+		<set-variable value="#[payload.id]" doc:name="Set Variable" doc:id="87173466-40d6-4ff5-bd25-19847240b02a" variableName="teamId"/>
+		<set-variable value="#[5 as Number]" doc:name="Set Variable" doc:id="6fe6f7e7-4b69-4d6d-802d-dd024fb63ff4" variableName="numberOfPlayers"/>
+		<http:request method="POST" doc:name="Create Enemy Players" doc:id="0736c7f7-e6ec-40bf-826b-4625ed95abca" config-ref="players_Request_configuration" path='#["/players/random/" ++ vars.teamId ++ "/" ++ vars.numberOfPlayers]'>
+		</http:request>
+	</flow>
+	<flow name="ShowAgentsFlow" doc:id="90aaf8ae-c29d-4417-8928-a58990dd8e25" >
+		<http:listener doc:name="Listener" doc:id="d774cfff-2760-4c2b-a963-184e5c5afa1b" config-ref="HTTP_Listener_config" path="/agents"/>
+		<http:request method="GET" doc:name="Show Agents Request" doc:id="8858a530-54fe-42dd-b008-e7cd89de0543" path="/agents" config-ref="agents_Request_configuration"/>
+	</flow>
+	<flow name="SelectAgentFlow" doc:id="93284a18-d492-4e1c-a883-f2d08e8574bf" >
+		<http:listener doc:name="Listener" doc:id="ed598750-8594-48fd-b223-e479ffdeac98" config-ref="HTTP_Listener_config" path="/selectAgent/{userId}/{agentId}"/>
+		<set-variable value="#[attributes.uriParams.agentId]" doc:name="Set Variable" doc:id="0d0449cf-7d21-4415-9d12-81ae9fa5ef5f" variableName="agentId"/>
+		<set-variable value="#[attributes.uriParams.userId]" doc:name="Set Variable" doc:id="e0a2f46e-ca13-47cb-acdf-2228acd8dd9f" variableName="userId"/>
+		<http:request method="GET" doc:name="Get Player By UserId Request" doc:id="21712d49-dc3d-45a9-b3a7-3abc72514db4" config-ref="players_Request_configuration" path='#["/players/users/" ++ vars.userId]'/>
+		<set-variable value="#[payload.teamId]" doc:name="Set Variable" doc:id="8e03e0f4-5ee6-492d-be5a-046661df4d8b" variableName="teamId"/>
+		<set-variable value="#[payload.id]" doc:name="Set Variable" doc:id="7fb668e6-3550-4fa3-9a30-5e52fe4dcb4b" variableName="playerId"/>
+		<set-variable value="#[payload.userId]" doc:name="Set Variable" doc:id="abaa7498-42c2-4df2-9490-dbab7aea2476" variableName="userId"/>
+		<http:request method="GET" doc:name="Get Agent Request" doc:id="150bee80-0e22-4393-9cba-5ac9070ab1bc" config-ref="agents_Request_configuration" path='#["/agents/" ++ vars.agentId]'/>
+		<set-payload value='#[{&#10;"userId": vars.userId,&#10;"agentId": payload.id,&#10;"teamId": vars.teamId&#10;}]' doc:name="Set Payload" doc:id="70984fb5-9eb7-4477-83b6-2ee7c428318b"/>
+		<http:request method="PUT" doc:name="Update Player's Agent Request" doc:id="b6cd22cd-8593-4254-b1e5-74059500ec77" config-ref="players_Request_configuration" path='#["/players/" ++ vars.playerId]'/>
+	</flow>
+	<flow name="ShowUser'sAgentAbilityFlow" doc:id="6c56fff0-809d-4b5d-a4b5-e000b20d68e8" >
+		<http:listener doc:name="Listener" doc:id="5b18b991-56eb-426a-bc87-6e78dca4b463" config-ref="HTTP_Listener_config" path="/showagentabilities/{userId}"/>
+		<set-variable value="#[attributes.uriParams.userId]" doc:name="Set Variable" doc:id="0e589323-f206-40f7-bc8c-1a1edab05e27" variableName="userId"/>
+		<http:request method="GET" doc:name="Get User's Player Request" doc:id="ce2d2fcf-e547-4493-be24-afec3139de0a" config-ref="players_Request_configuration" path='#["/players/users/" ++ vars.userId]'/>
+		<set-variable value="#[payload.agentId]" doc:name="Set Variable" doc:id="898aa903-6543-4314-8a65-141acc4c9f6f" variableName="agentId"/>
+		<http:request method="GET" doc:name="Get Abilities" doc:id="c4c5680c-6fa6-46cc-9ba1-f960fc86571b" config-ref="abilities_Request_configuration" path='#["abilities/agent/" ++ vars.agentId]'/>
+	</flow>
+	<flow name="ShowInventoryFlow" doc:id="e39c1887-c70b-48f2-8ad6-6b8aa65953da" >
+		<http:listener doc:name="Listener" doc:id="d7c368c3-0a3f-4a73-bdc3-c0acf1e295be" config-ref="HTTP_Listener_config" path="/inventory/{userId}"/>
+		<set-variable value="#[attributes.uriParams.userId]" doc:name="Set Variable" doc:id="62409938-829b-4b79-a5cb-93a92e855fb7" variableName="userId"/>
+		<http:request method="GET" doc:name="Request" doc:id="53f78dea-793f-4011-88a6-3d6a693eb12f" config-ref="inventory_item_Request_configuration" path='#["/inventory/" ++ vars.userId]'/>
+	</flow>
+	<flow name="ShowCurrencyFlow" doc:id="92c3c635-fa24-40ef-ba9c-22b0b4c00895" >
+		<http:listener doc:name="Listener" doc:id="68417783-f416-4a26-9e5f-4a74cd2c4c2e" config-ref="HTTP_Listener_config" path="/currency/{userId}"/>
+		<set-variable value="#[attributes.uriParams.userId]" doc:name="Set Variable" doc:id="05be0195-9f47-422d-9aaa-64a03b8e9e9b" variableName="userId"/>
+		<http:request method="GET" doc:name="Request" doc:id="38a119ac-4e73-4124-bfe8-13e5051dcdcc" config-ref="currency_Request_configuration" path='#["/currency/" ++ vars.userId]'/>
+	</flow>
+</mule>
